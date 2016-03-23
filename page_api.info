@@ -1,0 +1,5 @@
+name = Page API
+description = Provides API access to the page content type with JSON as response type 
+package = API
+core = 7.x
+configure = admin/config/system/site-information

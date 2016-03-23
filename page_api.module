@@ -1,0 +1,90 @@
+<?php
+
+/**
+ * @file
+ * Page API module.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function page_api_menu() {
+  $items = array();
+  $items['page_json/%/%node'] = array(
+    'page callback' => 'page_api_node_callback',
+    'page arguments' => array(2),
+    'access callback' => 'page_api_node_access_callback',
+    'access arguments' => array(1, 2),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Access callback for page_json/%/%node.
+ *
+ * Checks whether API key is right and the node is page.
+ *
+ * @param string $api_key
+ *   API key passed by the URL.
+ * @param object $node
+ *   Node object.
+ *
+ * @return bool
+ *    TRUE if access is allowed, else FALSE.
+ */
+function page_api_node_access_callback($api_key, $node) {
+  $site_api_key = variable_get('siteapikey', t('No API Key yet'));
+  if (($site_api_key === $api_key)
+      && (t('No API Key yet') !== $site_api_key)
+      && ($node->type === 'page')
+  ) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Callback function for page_json/%/%node.
+ *
+ * @param object $node
+ *   Node object.
+ *
+ * @return string
+ *   JSON representation of Node.
+ */
+function page_api_node_callback($node) {
+  // The whole node object is converted to JSON.
+  return drupal_json_output($node);
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function page_api_form_alter(&$form, &$form_state, $form_id) {
+  if ('system_site_information_settings' === $form_id) {
+    $site_api_key = variable_get('siteapikey', t('No API Key yet'));
+    $form['site_information']['site_api_key'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Site API Key'),
+      '#default_value' => $site_api_key,
+      '#required' => FALSE,
+    );
+    // Site API key is handled in this additional submit handler.
+    $form['#submit'][] = 'page_api_system_settings_form_submit';
+    $form['actions']['submit']['#value'] = t('Update Configuration');
+  }
+}
+
+/**
+ * Additional submit handler to handle API key.
+ */
+function page_api_system_settings_form_submit(&$form, &$form_state) {
+  $site_api_key = $form_state['values']['site_api_key'];
+  if (t('No API Key yet') !== $site_api_key) {
+    variable_set('siteapikey', $site_api_key);
+    drupal_set_message(t('Site API key has been set to @key.',
+      array('@key' => $site_api_key))
+    );
+  }
+}
